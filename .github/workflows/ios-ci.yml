@@ -71,14 +71,23 @@ jobs:
             flutter create --platforms=ios .
           fi
 
-      - name: Build iOS (release, no codesign)
-        run: flutter build ios --release --no-codesign
+      # Szimulátor-build: aláírás nélkül készül, és a Mac Simulatorra
+      # a `xcrun simctl install` paranccsal közvetlenül feltehető.
+      - name: Build iOS (simulator, no codesign)
+        run: flutter build ios --simulator
 
-      - name: Upload .app artifact
+      # A .app egy mappa; hogy a letöltött artifactban egyben maradjon
+      # (ne szétterítve), előbb becsomagoljuk egy zipbe a mappával együtt.
+      - name: Package Runner.app
+        run: |
+          cd build/ios/iphonesimulator
+          zip -qry "$GITHUB_WORKSPACE/Runner-simulator.zip" Runner.app
+
+      - name: Upload .app artifact (simulator)
         uses: actions/upload-artifact@v4
         with:
-          name: ios-app-unsigned
-          path: build/ios/iphoneos/Runner.app
+          name: ios-app-simulator
+          path: Runner-simulator.zip
           if-no-files-found: warn
 
   # 3) Integration tesztek iOS szimulátoron.
