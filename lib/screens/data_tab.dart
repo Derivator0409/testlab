@@ -75,15 +75,15 @@ class _DataTabState extends State<DataTab> {
         return const Center(
           child: CircularProgressIndicator(key: Key('loading')),
         );
-      case _Status.error:
-        return Center(
+       case _Status.error:
+        return const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 48),
-              const SizedBox(height: 8),
+              Icon(Icons.error_outline, color: Colors.red, size: 48),
+              SizedBox(height: 8),
               Text('Hiba történt a betöltéskor',
-                  key: const Key('error_message')),
+                  key: Key('error_message')),
             ],
           ),
         );

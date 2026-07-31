@@ -12,9 +12,9 @@ class TodoTab extends StatefulWidget {
 }
 
 class _Todo {
-  _Todo(this.title, {this.done = false});
+  _Todo(this.title);
   String title;
-  bool done;
+  bool done = false;
 }
 
 class _TodoTabState extends State<TodoTab> {
