@@ -49,6 +49,75 @@ flutter test
 flutter test integration_test/app_test.dart
 ```
 
+## iOS szimulátorban futtatás Mac-en
+
+iOS-hez **Mac + teljes Xcode** kell (a Command Line Tools önmagában nem elég,
+mert a `simctl` csak az Xcode része).
+
+### Előfeltételek (egyszer)
+
+```bash
+# Van teljes Xcode? (kell látnod: Xcode.app)
+ls /Applications | grep -i Xcode
+
+# Az aktív fejlesztői útvonal az Xcode-ra mutasson, ne a CommandLineTools-ra
+xcode-select -p
+# ha /Library/Developer/CommandLineTools jön ki, állítsd át:
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+sudo xcodebuild -license accept
+
+# iOS szimulátor-runtime letöltése (ha még nincs)
+xcodebuild -downloadPlatform iOS
+
+# Ellenőrzés – ki kell írnia a súgót:
+xcrun simctl help
+```
+
+### A) A projekt lebuildelése és futtatása szimulátoron (helyi kód)
+
+Ez a leggyorsabb út, ha a forrás megvan a gépeden:
+
+```bash
+open -a Simulator          # indíts egy iPhone szimulátort, várd meg a bootot
+flutter devices            # listázza a bebootolt szimulátort
+flutter run                # fordít és feltelepít a szimulátorra
+```
+
+Csak buildelni (futtatás nélkül), a `.app` a
+`build/ios/iphonesimulator/Runner.app` alatt jön létre:
+
+```bash
+flutter build ios --simulator
+```
+
+### B) A CI által gyártott build futtatása szimulátoron
+
+A GitHub Actions **szimulátor-buildet** készít (`flutter build ios --simulator`),
+és a `Runner.app`-ot zipbe csomagolva tölti fel `ios-app-simulator` artifactként.
+
+1. Actions → a legutóbbi futás → **Summary** alján az **Artifacts** szekció →
+   töltsd le az `ios-app-simulator` elemet.
+2. Kicsomagolás és telepítés (a GitHub egy extra zip-réteget rak rá, ezért
+   kétszer csomagolsz ki):
+
+```bash
+cd ~/Downloads
+unzip ios-app-simulator.zip     # ebből jön a Runner-simulator.zip
+unzip Runner-simulator.zip      # ebből a Runner.app mappa
+
+open -a Simulator               # indíts egy szimulátort, várd meg a bootot
+xcrun simctl install booted Runner.app
+xcrun simctl launch booted com.example.testlab
+```
+
+> Ha a `launch` nem találja a bundle ID-t, listázd:
+> `xcrun simctl listapps booted | grep -i testlab`, és a kiírt azonosítóval indítsd.
+
+**Fontos:** a `--simulator` build csak **szimulátoron** fut, valódi iPhone-on
+nem. A `--release --no-codesign` build ezzel szemben *eszköz*-build (arm64),
+ami sem szimulátoron, sem aláírás nélkül valódi telefonon nem indul. Valódi
+eszközre aláírt build (`.ipa`) kell — lásd az `ios-release.yml` workflow-t.
+
 ## Bejelentkezési adatok
 
 Bármilyen **érvényes email formátum** + **legalább 6 karakteres jelszó**.
