@@ -32,7 +32,6 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-
       - name: Analyze
         run: flutter analyze
 
@@ -47,9 +46,10 @@ jobs:
           if-no-files-found: ignore
 
   # 2) iOS build aláírás nélkül — csak macOS runneren fut.
+  #    Szándékosan NEM függ a tesztektől, hogy a build akkor is
+  #    elkészüljön, ha egy teszt épp piros.
   build-ios:
     name: Build iOS (no codesign)
-    needs: analyze-and-test
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +84,6 @@ jobs:
   # 3) Integration tesztek iOS szimulátoron.
   integration-test-ios:
     name: Integration tests (iOS Simulator)
-    needs: analyze-and-test
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
