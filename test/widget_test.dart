@@ -8,8 +8,9 @@ import 'package:testlab/screens/todo_tab.dart';
 void main() {
   group('Login', () {
     testWidgets('üres mezőknél validációs hibát mutat', (tester) async {
-      await tester.pumpWidget(const TestLabApp());
-
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: TodoTab())),
+      );
       await tester.tap(find.byKey(const Key('login_button')));
       await tester.pump();
 
