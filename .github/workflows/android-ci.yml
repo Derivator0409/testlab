@@ -1,8 +1,10 @@
 name: Android CI
 
 on:
+  # Minden HÉTFŐN 04:00 UTC-kor (a nap/idő a cron-ban állítható).
   schedule:
     - cron: "0 4 * * 1"
+  # Kézi indítás gomb az Actions fülön (ilyenkor a változás-ellenőrzést átugorjuk).
   workflow_dispatch:
 
 concurrency:
@@ -13,7 +15,9 @@ env:
   FLUTTER_VERSION: "3.35.0"
 
 jobs:
- check-changes:
+  # 0) Megnézi, volt-e commit az elmúlt 7 napban. A tényleges jobok csak
+  #    akkor futnak, ha igen (kézi indításnál mindig futnak).
+  check-changes:
     name: Check for recent changes
     runs-on: ubuntu-latest
     outputs:
@@ -21,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
+          fetch-depth: 0 # teljes history kell a git log-hoz
 
       - name: Detect commits in the last 7 days
         id: check
@@ -37,6 +41,7 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
+  # 1) Analyze + tesztek + APK build — mind olcsó Linux runneren.
   build-android:
     name: Build Android (APK)
     needs: check-changes
@@ -45,6 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Az Android/Gradle buildhez JDK 17 kell.
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -61,6 +67,7 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      # Ha az android/ mappa nincs verziókezelve, itt legeneráljuk.
       - name: Generate Android platform files if missing
         run: |
           if [ ! -d "android" ]; then
@@ -73,6 +80,8 @@ jobs:
       - name: Run unit & widget tests
         run: flutter test
 
+      # Release APK aláírási kulcs nélkül: a Flutter a debug-kulccsal írja alá,
+      # így telepíthető eszközre/emulátorra (de NEM Play Store-kész).
       - name: Build APK (release, debug-signed)
         run: flutter build apk --release
 
@@ -83,6 +92,8 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: warn
 
+  # 2) Integration tesztek Android emulátoron (opcionális, lassabb).
+  #    Az emulátor KVM-gyorsítást igényel, amit a Linux runneren engedélyezünk.
   integration-test-android:
     name: Integration tests (Android Emulator)
     needs: check-changes
@@ -120,6 +131,7 @@ jobs:
             flutter create --platforms=android .
           fi
 
+      # Elindít egy emulátort, megvárja a bootot, és lefuttatja a tesztet.
       - name: Run integration tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
