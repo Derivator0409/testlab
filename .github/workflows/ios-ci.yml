@@ -1,12 +1,13 @@
 name: iOS CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  # Minden HÉTFŐN 04:00 UTC-kor (a nap/idő a cron-ban állítható).
+  schedule:
+    - cron: "0 4 * * 1"
+  # Kézi indítás gomb az Actions fülön (ilyenkor a változás-ellenőrzést átugorjuk).
+  workflow_dispatch:
 
-# Ugyanarra a branch-re/PR-re érkező új push megszakítja a futó buildet.
+# Ugyanarra a branch-re érkező új futás megszakítja a korábbit.
 concurrency:
   group: ios-ci-${{ github.ref }}
   cancel-in-progress: true
@@ -15,9 +16,37 @@ env:
   FLUTTER_VERSION: "3.35.0" # igazítsd a projektedhez, vagy hagyd a channel-t
 
 jobs:
+  # 0) Megnézi, volt-e commit az elmúlt 7 napban. A tényleges jobok csak
+  #    akkor futnak, ha igen (kézi indításnál mindig futnak).
+  check-changes:
+    name: Check for recent changes
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # teljes history kell a git log-hoz
+
+      - name: Detect commits in the last 7 days
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Kézi indítás – mindig fut."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$(git log --since='7 days ago' --oneline)" ]; then
+            echo "Volt commit az elmúlt 7 napban – fut."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nem volt változás – kihagyjuk."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # 1) Statikus elemzés + unit/widget tesztek — olcsó Linux runneren.
   analyze-and-test:
     name: Analyze & Test
+    needs: check-changes
+    if: needs.check-changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +79,8 @@ jobs:
   #    elkészüljön, ha egy teszt épp piros.
   build-ios:
     name: Build iOS (no codesign)
+    needs: check-changes
+    if: needs.check-changes.outputs.changed == 'true'
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -93,6 +124,8 @@ jobs:
   # 3) Integration tesztek iOS szimulátoron.
   integration-test-ios:
     name: Integration tests (iOS Simulator)
+    needs: check-changes
+    if: needs.check-changes.outputs.changed == 'true'
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
