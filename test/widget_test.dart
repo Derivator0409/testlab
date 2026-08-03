@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:testlab/main.dart';
 import 'package:testlab/screens/counter_tab.dart';
 import 'package:testlab/screens/todo_tab.dart';
 
